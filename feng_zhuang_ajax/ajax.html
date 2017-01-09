@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>封装原生ajax</title>
+	<style type="text/css">
+		#ems{
+			position: absolute;
+			left: 50%;
+			width: 400px;
+			height: auto;
+			margin-left: -200px;
+			background: lightGreen;
+			text-align: center;
+			min-height: 50px;
+			height: 500px;
+			overflow-y: scroll;
+			overflow-x: hidden;
+		}
+		#ems input{
+			height: 25px;
+			margin-top: 10px;
+		}
+		#list{
+			background: lightBlue;
+		}
+		#list li{
+			text-align: left;
+		}
+	</style>
+</head>
+<body>
+<div id="ems">
+	<div>
+		<input type="text" id="code">
+		<input type="button" value="查询" id="btn">
+	</div>
+	<div id="list">
+	</div>
+</div>
+<script type="text/javascript">
+	var btn = document.getElementById('btn');
+	btn.onclick = function() {
+		var codeVal = document.getElementById('code').value;
+		var list = document.getElementById('list');
+		var param = {
+			data: 'code='+codeVal,
+			dataType: 'json',
+			method: 'get',
+			url: './ems.php',
+			asyn: 'true',
+			success: function(data) {
+					if (data.status == 0) {
+						var content = data.data.info.context;
+						var tag = '';
+						var ul = document.createElement('ul');
+						for(var i = 0, length1 = content.length; i < length1; i++){
+							var item = content[i];
+							var desc = item.desc;
+							var  t = new Date();
+							t.setTime(item.time * 1000);
+							var str = t.getFullYear() + '年' + t.getMonth() + '月' + t.getDate() + '日' + (t.getHours() > 12 ? '下午' : '上午') + t.getHours() % 12 + ':' + t.getMinutes() + ':' + t.getSeconds();
+							tag += '<li><div>'+ str +'</div><div>'+ desc +'</div></li>';
+						}
+						ul.innerHTML = tag;
+						list.innerHTML = '';
+						list.appendChild(ul);
+					} else {
+						list.innerHTML = data.msg;
+					}
+			}
+		}
+		ajax(param);
+	}
+
+	// 封装原生ajax
+	function ajax(data) {
+		// data = { data:'', dataType: 'XML/Json', method:'get/post', url:'', asyn:'true/false', seccess: function() {}, failure:function() {}}
+		var xhr = null;
+		xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
+		var method = data.method == 'get' ? 'get' : 'post';
+		var url = '';
+		if (data.url) {
+			url = data.url;
+			if (method == 'get') {
+				url += '?' + data.data + '&_t=' + new Date().getTime();
+			}
+		}
+		var flag = data.asyn == 'true' ? 'true' : 'false';
+		xhr.open(method, url, flag);
+
+		xhr.onreadystatechange = function() {
+			if (this.readyState == 4) {
+				if (this.status == 200) {
+					if (typeof data.success == 'function') {
+						var d = data.dataType == 'xml' ? xhr.responseXML : JSON.parse(xhr.responseText);
+						data.success(d);
+					}
+				} else {
+					if (typeof data.failure == 'function') {
+						data.failure();
+					}
+				}
+			}
+		}
+
+		if(method == 'get') {
+			xhr.send(null);
+		} else if (method == 'post') {
+			xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+			xhr.send(data.data);
+		}
+	}
+</script>
+</body>
+</html>
